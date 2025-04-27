@@ -1,57 +1,55 @@
-Twitter Proxy Reporter
+import tweepy
+import requests
+from itertools import cycle
 
-This Python script automates logging into multiple Twitter accounts using proxies and Tweepy, aiming to report spam accounts efficiently. Each login rotates through a list of proxies to avoid detection and enhance privacy.
+# Define proxies
+proxies = [
+    "http://proxy1:port",
+    "http://proxy2:port",
+    "http://proxy3:port"
+]
+proxy_pool = cycle(proxies)
 
-Requirements
+# Define multiple Twitter API credentials
+accounts = [
+    {"consumer_key": "", "consumer_secret": "", "access_token": "", "access_token_secret": ""},
+    {"consumer_key": "", "consumer_secret": "", "access_token": "", "access_token_secret": ""},
+    {"consumer_key": "", "consumer_secret": "", "access_token": "", "access_token_secret": ""},
+    # Add as many accounts as needed
+]
 
-Python 3.x
+# Target username to report
+target_username = "spam_account"
 
-Tweepy
+# Tweepy client with proxy support
+def create_client(auth, proxy):
+    session = requests.Session()
+    session.proxies = {"http": proxy, "https": proxy}
+    client = tweepy.Client(
+        consumer_key=auth['consumer_key'],
+        consumer_secret=auth['consumer_secret'],
+        access_token=auth['access_token'],
+        access_token_secret=auth['access_token_secret'],
+        session=session
+    )
+    return client
 
-Requests
+# Report target user for spam
+def report_user(client, username):
+    user = client.get_user(username=username)
+    if user:
+        user_id = user.data.id
+        response = client.report_user(user_id=user_id, reason="spam")
+        print(f"Reported {username}: {response}")
+    else:
+        print(f"User {username} not found.")
 
-
-Installation
-
-Install dependencies using pip:
-
-pip install tweepy requests
-
-Configuration
-
-Proxies
-
-Update the proxies list with your proxy URLs.
-
-Twitter API Credentials
-
-Update the accounts list with your Twitter API credentials:
-
-consumer_key
-
-consumer_secret
-
-access_token
-
-access_token_secret
-
-
-Target Username
-
-Specify the username of the Twitter account you wish to report in the target_username variable.
-
-Usage
-
-Run the script:
-
-python twitter_proxy_reporter.py
-
-Note
-
-The script currently demonstrates the logic and proxy rotation. Twitter API v2 doesn't directly expose user-reporting capabilities, so the reporting functionality shown here is illustrative. For production use, consider browser automation tools like Selenium or Playwright for actual reporting tasks.
-
-License
-
-This project is open-source and available under the MIT License.
-
-
+# Main script
+for account in accounts:
+    proxy = next(proxy_pool)
+    try:
+        print(f"Using proxy {proxy}")
+        client = create_client(account, proxy)
+        report_user(client, target_username)
+    except Exception as e:
+        print(f"Error with account/proxy combination: {e}")
